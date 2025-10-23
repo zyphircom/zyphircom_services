@@ -5,7 +5,8 @@ import { AuthModule } from "./auth/auth.module";
 import { UsersModule } from "./users/users.module";
 import { BullModule } from "@nestjs/bullmq";
 import { env } from "./env";
-import { appConstants } from "./constants";
+import { QueueModule } from "./queue/queue.module";
+import { WorkerModule } from './worker/worker.module';
 
 @Module({
   imports: [
@@ -16,7 +17,8 @@ import { appConstants } from "./constants";
     BullModule.forRoot({
       connection: { host: env.REDIS_HOST, port: Number(env.REDIS_PORT) },
     }),
-    BullModule.registerQueue({ name: appConstants.QUEUE_NAME }),
+    QueueModule,
+    WorkerModule,
   ],
 })
 export class AppModule {}
