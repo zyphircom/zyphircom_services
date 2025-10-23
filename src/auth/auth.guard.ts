@@ -1,4 +1,3 @@
-import { env } from "@/env";
 import {
   CanActivate,
   Injectable,
@@ -7,10 +6,14 @@ import {
 } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import type { AuthenticatedRequest, JwtPayload } from "./auth.types";
+import { EnvService } from "@/env/env.service";
 
 @Injectable()
 export class AuthGuard implements CanActivate {
-  constructor(private jwtService: JwtService) {}
+  constructor(
+    private jwtService: JwtService,
+    private envService: EnvService,
+  ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
@@ -25,7 +28,7 @@ export class AuthGuard implements CanActivate {
       const tokenPayload = await this.jwtService.verifyAsync<JwtPayload>(
         token,
         {
-          secret: env.JWT_SECRET,
+          secret: this.envService.JWT_SECRET,
         },
       );
 

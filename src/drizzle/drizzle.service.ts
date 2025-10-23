@@ -1,11 +1,12 @@
 import { Injectable, OnModuleInit } from "@nestjs/common";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
-import { env } from "@/env";
 import * as schema from "@/drizzle/drizzle.schema";
+import { EnvService } from "@/env/env.service";
 
 @Injectable()
 export class DrizzleService implements OnModuleInit {
+  constructor(private envService: EnvService) {}
   private db: ReturnType<typeof drizzle<typeof schema>>;
 
   onModuleInit() {
@@ -13,8 +14,8 @@ export class DrizzleService implements OnModuleInit {
       conn: postgres.Sql | undefined;
     };
 
-    const conn = globalForDb.conn ?? postgres(env.DATABASE_URL);
-    if (env.NODE_ENV !== "development") globalForDb.conn = conn;
+    const conn = globalForDb.conn ?? postgres(this.envService.DATABASE_URL);
+    if (this.envService.NODE_ENV !== "development") globalForDb.conn = conn;
 
     this.db = drizzle(conn, { schema });
   }

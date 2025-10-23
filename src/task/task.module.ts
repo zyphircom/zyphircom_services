@@ -3,9 +3,10 @@ import { TaskService } from "./task.service";
 import { TaskController } from "./task.controller";
 import { DrizzleModule } from "@/drizzle/drizzle.module";
 import { QueueModule } from "@/queue/queue.module";
+import { EnvModule } from "@/env/env.module";
 
 @Module({
-  imports: [DrizzleModule, QueueModule],
+  imports: [DrizzleModule, QueueModule, EnvModule],
   providers: [TaskService],
   controllers: [TaskController],
 })

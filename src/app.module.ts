@@ -4,21 +4,33 @@ import { TaskModule } from "./task/task.module";
 import { AuthModule } from "./auth/auth.module";
 import { UsersModule } from "./users/users.module";
 import { BullModule } from "@nestjs/bullmq";
-import { env } from "./env";
 import { QueueModule } from "./queue/queue.module";
-import { WorkerModule } from './worker/worker.module';
+import { WorkerModule } from "./worker/worker.module";
+import { EnvModule } from "./env/env.module";
+import { ConfigModule } from "@nestjs/config";
+import envConfig from "./config/env.config";
+import { EnvService } from "./env/env.service";
 
 @Module({
   imports: [
-    DrizzleModule,
-    TaskModule,
     AuthModule,
-    UsersModule,
-    BullModule.forRoot({
-      connection: { host: env.REDIS_HOST, port: Number(env.REDIS_PORT) },
-    }),
+    ConfigModule.forRoot({ load: [envConfig] }),
+    DrizzleModule,
+    EnvModule,
     QueueModule,
+    TaskModule,
+    UsersModule,
     WorkerModule,
+    BullModule.forRootAsync({
+      imports: [EnvModule],
+      inject: [EnvService],
+      useFactory: (envService: EnvService) => ({
+        connection: {
+          host: envService.REDIS_HOST,
+          port: Number(envService.REDIS_PORT),
+        },
+      }),
+    }),
   ],
 })
 export class AppModule {}
