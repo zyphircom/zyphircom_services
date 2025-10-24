@@ -17,6 +17,7 @@ export const tasksTable = pgTable("tasks", (d) => ({
   payload: d.text(),
   createdAt: d.timestamp().notNull().defaultNow(),
   updatedAt: d.timestamp(),
+  jobId: d.varchar().notNull(),
 }));
 
 export const taskLogsTable = pgTable("task_logs", (d) => ({

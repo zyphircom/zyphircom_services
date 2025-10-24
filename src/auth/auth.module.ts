@@ -16,7 +16,7 @@ import { EnvModule } from "@/env/env.module";
       inject: [EnvService],
       useFactory: (envService: EnvService) => ({
         secret: envService.JWT_SECRET,
-        signOptions: { expiresIn: "1h", algorithm: "HS256" },
+        signOptions: { expiresIn: "4h", algorithm: "HS256" },
       }),
     }),
   ],

@@ -38,12 +38,15 @@ export class TaskService {
 
   async createTask(task: CreateTaskDto, userId: number): Promise<Task> {
     try {
+      const job = await this.zyphir_queue.add(
+        `task_${userId}_${Date.now()}`,
+        task,
+      );
       const newTask: Task[] = await this.drizzleService
         .getClient()
         .insert(tasksTable)
-        .values({ ...task, userId: userId })
+        .values({ ...task, userId: userId, jobId: job.id })
         .returning();
-      await this.zyphir_queue.add(`test_job_${userId}`, task);
       return newTask[0];
     } catch {
       throw new InternalServerErrorException();
