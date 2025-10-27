@@ -8,12 +8,14 @@ import {
 import { UsersService } from "@/users/users.service";
 import { JwtService } from "@nestjs/jwt";
 import * as bcrypt from "bcrypt";
+import { LoggerService } from "@/logger/logger.service";
 
 @Injectable()
 export class AuthService {
   constructor(
     private userService: UsersService,
     private jwtService: JwtService,
+    private logger: LoggerService,
   ) {}
 
   async signIn(email: string, password: string) {
@@ -46,6 +48,14 @@ export class AuthService {
       } else if (error instanceof ConflictException) {
         throw new ConflictException("Email already exists!");
       }
+
+      // Log unexpected errors
+      await this.logger.error(
+        `Failed to sign up user with email: ${email}`,
+        error as Error,
+        "AuthService",
+        { email },
+      );
       throw new InternalServerErrorException();
     }
   }

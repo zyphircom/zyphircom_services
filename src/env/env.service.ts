@@ -28,4 +28,12 @@ export class EnvService {
   get REDIS_PORT(): number {
     return Number(this.configService.get("REDIS_PORT", { infer: true }));
   }
+
+  get LOG_LEVEL(): string {
+    return this.configService.get("LOG_LEVEL", { infer: true });
+  }
+
+  get LOG_WARNINGS_TO_DB(): string {
+    return this.configService.get("LOG_WARNINGS_TO_DB", { infer: true });
+  }
 }

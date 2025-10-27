@@ -10,6 +10,11 @@ export const envSchema = z.object({
   JWT_SECRET: nonEmptyString("JWT_SECRET"),
   REDIS_HOST: nonEmptyString("REDIS_HOST"),
   REDIS_PORT: nonEmptyString("REDIS_PORT"),
+  LOG_LEVEL: z
+    .enum(["DEBUG", "INFO", "WARN", "ERROR"])
+    .optional()
+    .default("INFO"),
+  LOG_WARNINGS_TO_DB: z.boolean().optional().default(false),
 });
 
 export type Env = z.infer<typeof envSchema>;

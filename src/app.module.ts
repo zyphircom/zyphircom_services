@@ -10,6 +10,7 @@ import { EnvModule } from "./env/env.module";
 import { ConfigModule } from "@nestjs/config";
 import envConfig from "./config/env.config";
 import { EnvService } from "./env/env.service";
+import { LoggerModule } from "./logger/logger.module";
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { EnvService } from "./env/env.service";
     ConfigModule.forRoot({ load: [envConfig] }),
     DrizzleModule,
     EnvModule,
+    LoggerModule,
     QueueModule,
     TaskModule,
     UsersModule,

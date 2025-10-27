@@ -11,12 +11,14 @@ import { desc, eq } from "drizzle-orm";
 import { Task, TaskLog } from "./task.types.js";
 import { InjectQueue } from "@nestjs/bullmq";
 import { Queue } from "bullmq";
+import { LoggerService } from "@/logger/logger.service";
 
 @Injectable()
 export class TaskService {
   constructor(
     private drizzleService: DrizzleService,
     @InjectQueue("zyphir_queue") private readonly zyphir_queue: Queue,
+    private logger: LoggerService,
   ) {}
 
   private async hasPermission(userId: number, taskId: number): Promise<void> {
@@ -42,13 +44,22 @@ export class TaskService {
         `task_${userId}_${Date.now()}`,
         task,
       );
+      if (!job.id) {
+        throw new InternalServerErrorException();
+      }
       const newTask: Task[] = await this.drizzleService
         .getClient()
         .insert(tasksTable)
         .values({ ...task, userId: userId, jobId: job.id })
         .returning();
       return newTask[0];
-    } catch {
+    } catch (error) {
+      await this.logger.error(
+        `Failed to create task for user ${userId}`,
+        error as Error,
+        "TaskService",
+        { userId, taskData: task },
+      );
       throw new InternalServerErrorException();
     }
   }
@@ -61,7 +72,13 @@ export class TaskService {
         .from(tasksTable)
         .where(eq(tasksTable.userId, userId))
         .orderBy(desc(tasksTable.createdAt));
-    } catch {
+    } catch (error) {
+      await this.logger.error(
+        `Failed to get tasks for user ${userId}`,
+        error as Error,
+        "TaskService",
+        { userId },
+      );
       throw new InternalServerErrorException();
     }
   }
@@ -81,7 +98,13 @@ export class TaskService {
         .where(eq(tasksTable.id, taskId))
         .returning();
       return updatedTask[0];
-    } catch {
+    } catch (error) {
+      await this.logger.error(
+        `Failed to edit task ${taskId} for user ${userId}`,
+        error as Error,
+        "TaskService",
+        { userId, taskId, taskData },
+      );
       throw new InternalServerErrorException();
     }
   }
@@ -93,7 +116,13 @@ export class TaskService {
         .getClient()
         .delete(tasksTable)
         .where(eq(tasksTable.id, taskId));
-    } catch {
+    } catch (error) {
+      await this.logger.error(
+        `Failed to delete task ${taskId} for user ${userId}`,
+        error as Error,
+        "TaskService",
+        { userId, taskId },
+      );
       throw new InternalServerErrorException();
     }
   }
@@ -108,7 +137,13 @@ export class TaskService {
         .where(eq(taskLogsTable.taskId, taskId))
         .orderBy(desc(taskLogsTable.startedAt));
       return taskLogs;
-    } catch {
+    } catch (error) {
+      await this.logger.error(
+        `Failed to get task logs for task ${taskId}`,
+        error as Error,
+        "TaskService",
+        { userId, taskId },
+      );
       throw new InternalServerErrorException();
     }
   }
