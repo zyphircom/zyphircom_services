@@ -5,11 +5,13 @@ import { UsersModule } from "@/users/users.module";
 import { JwtModule } from "@nestjs/jwt";
 import { EnvService } from "@/env/env.service";
 import { EnvModule } from "@/env/env.module";
+import { LoggerModule } from "@/logger/logger.module";
 
 @Module({
   imports: [
     EnvModule,
     UsersModule,
+    LoggerModule,
     JwtModule.registerAsync({
       global: true,
       imports: [EnvModule],

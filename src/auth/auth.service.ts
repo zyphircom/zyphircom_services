@@ -49,7 +49,6 @@ export class AuthService {
         throw new ConflictException("Email already exists!");
       }
 
-      // Log unexpected errors
       await this.logger.error(
         `Failed to sign up user with email: ${email}`,
         error as Error,

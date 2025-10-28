@@ -5,13 +5,18 @@ import {
   InternalServerErrorException,
   NotFoundException,
   BadRequestException,
+  HttpException,
 } from "@nestjs/common";
 import { eq } from "drizzle-orm";
 import { User } from "./users.types";
+import { LoggerService } from "@/logger/logger.service";
 
 @Injectable()
 export class UsersService {
-  constructor(private drizzleService: DrizzleService) {}
+  constructor(
+    private drizzleService: DrizzleService,
+    private logger: LoggerService,
+  ) {}
 
   private async findUser(email?: string, id?: number): Promise<User> {
     if (!email && !id) {
@@ -62,8 +67,18 @@ export class UsersService {
         throw new NotFoundException();
       }
       return newUser[0];
-    } catch {
-      throw new InternalServerErrorException();
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+
+      await this.logger.error(
+        "Could not create new user",
+        error as Error,
+        "UserService",
+        { email },
+      );
+      throw new InternalServerErrorException("Could not create new user.");
     }
   }
 }

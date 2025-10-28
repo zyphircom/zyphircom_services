@@ -10,7 +10,6 @@ async function bootstrap() {
   app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
   app.setGlobalPrefix("api");
 
-  // Set up global exception filter
   const loggerService = app.get(LoggerService);
   app.useGlobalFilters(new AllExceptionsFilter(loggerService));
 

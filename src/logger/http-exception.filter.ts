@@ -32,18 +32,15 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const error =
       exception instanceof Error ? exception : new Error(String(exception));
 
-    // Extract user ID from request if available
     interface RequestWithUser extends Request {
       user?: { sub: number };
     }
     const userId = (request as RequestWithUser).user?.sub;
 
-    // Log the error
     this.logger.logHttpError(error, request, userId).catch((logError) => {
       console.error("Failed to log error:", logError);
     });
 
-    // Send response
     response.status(status).json({
       statusCode: status,
       message:

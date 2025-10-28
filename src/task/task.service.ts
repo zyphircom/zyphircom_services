@@ -2,6 +2,7 @@ import { DrizzleService } from "@/drizzle/drizzle.service";
 import {
   ForbiddenException,
   Injectable,
+  HttpException,
   InternalServerErrorException,
   NotFoundException,
 } from "@nestjs/common";
@@ -22,19 +23,38 @@ export class TaskService {
   ) {}
 
   private async hasPermission(userId: number, taskId: number): Promise<void> {
-    const task = await this.drizzleService
-      .getClient()
-      .select({ userId: tasksTable.userId })
-      .from(tasksTable)
-      .where(eq(tasksTable.id, taskId));
-    if (!task || task.length === 0) {
-      throw new NotFoundException("Task not found.");
-    }
+    try {
+      const task = await this.drizzleService
+        .getClient()
+        .select({ userId: tasksTable.userId })
+        .from(tasksTable)
+        .where(eq(tasksTable.id, taskId));
 
-    if (task[0].userId !== userId) {
-      throw new ForbiddenException(
-        "You do not have persmission to perform this action.",
-      );
+      if (!task || task.length === 0) {
+        throw new NotFoundException("Task not found.");
+      }
+
+      if (task[0].userId !== userId) {
+        throw new ForbiddenException(
+          "You do not have permission to perform this action.",
+        );
+      }
+    } catch (error) {
+      if (
+        !(
+          error instanceof NotFoundException ||
+          error instanceof ForbiddenException
+        )
+      ) {
+        await this.logger.error(
+          "Permission check failed",
+          error as Error,
+          "TaskService",
+          { taskId },
+          userId,
+        );
+      }
+      throw error;
     }
   }
 
@@ -58,14 +78,22 @@ export class TaskService {
         `Failed to create task for user ${userId}`,
         error as Error,
         "TaskService",
-        { userId, taskData: task },
+        { taskData: task },
+        userId,
       );
-      throw new InternalServerErrorException();
+
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      throw new InternalServerErrorException(
+        "An unexpected error occured while creating the task.",
+      );
     }
   }
 
   async getTasksByUserId(userId: number): Promise<Task[]> {
     try {
+      throw new InternalServerErrorException();
       return await this.drizzleService
         .getClient()
         .select()
@@ -73,13 +101,19 @@ export class TaskService {
         .where(eq(tasksTable.userId, userId))
         .orderBy(desc(tasksTable.createdAt));
     } catch (error) {
+      // if (error instanceof HttpException) {
+      //   throw error;
+      // }
       await this.logger.error(
         `Failed to get tasks for user ${userId}`,
         error as Error,
         "TaskService",
-        { userId },
+        undefined,
+        userId,
       );
-      throw new InternalServerErrorException();
+      throw new InternalServerErrorException(
+        "An error occurred while getting the tasks",
+      );
     }
   }
 
@@ -99,13 +133,20 @@ export class TaskService {
         .returning();
       return updatedTask[0];
     } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+
       await this.logger.error(
         `Failed to edit task ${taskId} for user ${userId}`,
         error as Error,
         "TaskService",
-        { userId, taskId, taskData },
+        { taskId, taskData },
+        userId,
       );
-      throw new InternalServerErrorException();
+      throw new InternalServerErrorException(
+        "An error occurred while editing the task.",
+      );
     }
   }
 
@@ -117,13 +158,20 @@ export class TaskService {
         .delete(tasksTable)
         .where(eq(tasksTable.id, taskId));
     } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+
       await this.logger.error(
         `Failed to delete task ${taskId} for user ${userId}`,
         error as Error,
         "TaskService",
-        { userId, taskId },
+        { taskId },
+        userId,
       );
-      throw new InternalServerErrorException();
+      throw new InternalServerErrorException(
+        "An error occurred while deleting the task.",
+      );
     }
   }
 
@@ -138,13 +186,20 @@ export class TaskService {
         .orderBy(desc(taskLogsTable.startedAt));
       return taskLogs;
     } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+
       await this.logger.error(
         `Failed to get task logs for task ${taskId}`,
         error as Error,
         "TaskService",
-        { userId, taskId },
+        { taskId },
+        userId,
       );
-      throw new InternalServerErrorException();
+      throw new InternalServerErrorException(
+        "An error occurred while gettings the logs for the task.",
+      );
     }
   }
 }

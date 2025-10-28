@@ -14,7 +14,9 @@ export const envSchema = z.object({
     .enum(["DEBUG", "INFO", "WARN", "ERROR"])
     .optional()
     .default("INFO"),
-  LOG_WARNINGS_TO_DB: z.boolean().optional().default(false),
+  LOG_WARNINGS_TO_DB: nonEmptyString("LOG_WARNINGS_TO_DB")
+    .optional()
+    .default("false"),
 });
 
 export type Env = z.infer<typeof envSchema>;
