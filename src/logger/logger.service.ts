@@ -7,7 +7,7 @@ import { Request } from "express";
 
 @Injectable()
 export class LoggerService {
-  private readonly logger = new NestLogger();
+  private readonly nestLogger = new NestLogger();
   private readonly logLevel: LogLevel;
 
   constructor(
@@ -47,9 +47,8 @@ export class LoggerService {
           requestId: entry.requestId,
         });
     } catch (error) {
-      // Log to console if database logging fails
       const err = error as Error;
-      this.logger.error(
+      this.nestLogger.error(
         `Failed to save log to database: ${err.message}`,
         err.stack,
         "LoggerService",
@@ -71,16 +70,16 @@ export class LoggerService {
 
     switch (level) {
       case LogLevel.ERROR:
-        this.logger.error(logMessage, null, context);
+        this.nestLogger.error(logMessage, null, context);
         break;
       case LogLevel.WARN:
-        this.logger.warn(logMessage, context);
+        this.nestLogger.warn(logMessage, context);
         break;
       case LogLevel.INFO:
-        this.logger.log(logMessage, context);
+        this.nestLogger.log(logMessage, context);
         break;
       case LogLevel.DEBUG:
-        this.logger.debug(logMessage, context);
+        this.nestLogger.debug(logMessage, context);
         break;
     }
   }
@@ -91,6 +90,8 @@ export class LoggerService {
     context?: string,
     metadata?: LogMetadata,
     userId?: number,
+    endpoint?: string,
+    method?: string,
   ): Promise<void> {
     const entry: LogEntry = {
       level: LogLevel.ERROR,
@@ -99,6 +100,8 @@ export class LoggerService {
       stack: error?.stack,
       metadata,
       userId,
+      endpoint,
+      method,
     };
 
     this.log(LogLevel.ERROR, message, context, metadata);

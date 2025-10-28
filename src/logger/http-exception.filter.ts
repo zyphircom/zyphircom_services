@@ -37,9 +37,11 @@ export class AllExceptionsFilter implements ExceptionFilter {
     }
     const userId = (request as RequestWithUser).user?.sub;
 
-    this.logger.logHttpError(error, request, userId).catch((logError) => {
-      console.error("Failed to log error:", logError);
-    });
+    if (!(error as any).alreadyLogged) {
+      this.logger.logHttpError(error, request, userId).catch((logError) => {
+        console.error("Failed to log error:", logError);
+      });
+    }
 
     response.status(status).json({
       statusCode: status,

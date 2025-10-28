@@ -59,62 +59,29 @@ export class TaskService {
   }
 
   async createTask(task: CreateTaskDto, userId: number): Promise<Task> {
-    try {
-      const job = await this.zyphir_queue.add(
-        `task_${userId}_${Date.now()}`,
-        task,
-      );
-      if (!job.id) {
-        throw new InternalServerErrorException();
-      }
-      const newTask: Task[] = await this.drizzleService
-        .getClient()
-        .insert(tasksTable)
-        .values({ ...task, userId: userId, jobId: job.id })
-        .returning();
-      return newTask[0];
-    } catch (error) {
-      await this.logger.error(
-        `Failed to create task for user ${userId}`,
-        error as Error,
-        "TaskService",
-        { taskData: task },
-        userId,
-      );
-
-      if (error instanceof HttpException) {
-        throw error;
-      }
-      throw new InternalServerErrorException(
-        "An unexpected error occured while creating the task.",
-      );
+    const job = await this.zyphir_queue.add(
+      `task_${userId}_${Date.now()}`,
+      task,
+    );
+    if (!job.id) {
+      throw new InternalServerErrorException();
     }
+    const newTask: Task[] = await this.drizzleService
+      .getClient()
+      .insert(tasksTable)
+      .values({ ...task, userId: userId, jobId: job.id })
+      .returning();
+
+    return newTask[0];
   }
 
   async getTasksByUserId(userId: number): Promise<Task[]> {
-    try {
-      throw new InternalServerErrorException();
-      return await this.drizzleService
-        .getClient()
-        .select()
-        .from(tasksTable)
-        .where(eq(tasksTable.userId, userId))
-        .orderBy(desc(tasksTable.createdAt));
-    } catch (error) {
-      // if (error instanceof HttpException) {
-      //   throw error;
-      // }
-      await this.logger.error(
-        `Failed to get tasks for user ${userId}`,
-        error as Error,
-        "TaskService",
-        undefined,
-        userId,
-      );
-      throw new InternalServerErrorException(
-        "An error occurred while getting the tasks",
-      );
-    }
+    return await this.drizzleService
+      .getClient()
+      .select()
+      .from(tasksTable)
+      .where(eq(tasksTable.userId, userId))
+      .orderBy(desc(tasksTable.createdAt));
   }
 
   async editTask(
