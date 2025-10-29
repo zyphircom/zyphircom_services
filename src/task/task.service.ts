@@ -91,82 +91,33 @@ export class TaskService {
   ): Promise<Task> {
     await this.hasPermission(userId, taskId);
 
-    try {
-      const updatedTask: Task[] = await this.drizzleService
-        .getClient()
-        .update(tasksTable)
-        .set(taskData)
-        .where(eq(tasksTable.id, taskId))
-        .returning();
-      return updatedTask[0];
-    } catch (error) {
-      if (error instanceof HttpException) {
-        throw error;
-      }
-
-      await this.logger.error(
-        `Failed to edit task ${taskId} for user ${userId}`,
-        error as Error,
-        "TaskService",
-        { taskId, taskData },
-        userId,
-      );
-      throw new InternalServerErrorException(
-        "An error occurred while editing the task.",
-      );
-    }
+    const updatedTask: Task[] = await this.drizzleService
+      .getClient()
+      .update(tasksTable)
+      .set(taskData)
+      .where(eq(tasksTable.id, taskId))
+      .returning();
+    return updatedTask[0];
   }
 
   async deleteTask(userId: number, taskId: number) {
     await this.hasPermission(userId, taskId);
-    try {
-      await this.drizzleService
-        .getClient()
-        .delete(tasksTable)
-        .where(eq(tasksTable.id, taskId));
-    } catch (error) {
-      if (error instanceof HttpException) {
-        throw error;
-      }
 
-      await this.logger.error(
-        `Failed to delete task ${taskId} for user ${userId}`,
-        error as Error,
-        "TaskService",
-        { taskId },
-        userId,
-      );
-      throw new InternalServerErrorException(
-        "An error occurred while deleting the task.",
-      );
-    }
+    await this.drizzleService
+      .getClient()
+      .delete(tasksTable)
+      .where(eq(tasksTable.id, taskId));
   }
 
   async getTaskLogs(userId: number, taskId: number): Promise<TaskLog[]> {
     await this.hasPermission(userId, taskId);
-    try {
-      const taskLogs: TaskLog[] = await this.drizzleService
-        .getClient()
-        .select()
-        .from(taskLogsTable)
-        .where(eq(taskLogsTable.taskId, taskId))
-        .orderBy(desc(taskLogsTable.startedAt));
-      return taskLogs;
-    } catch (error) {
-      if (error instanceof HttpException) {
-        throw error;
-      }
 
-      await this.logger.error(
-        `Failed to get task logs for task ${taskId}`,
-        error as Error,
-        "TaskService",
-        { taskId },
-        userId,
-      );
-      throw new InternalServerErrorException(
-        "An error occurred while gettings the logs for the task.",
-      );
-    }
+    const taskLogs: TaskLog[] = await this.drizzleService
+      .getClient()
+      .select()
+      .from(taskLogsTable)
+      .where(eq(taskLogsTable.taskId, taskId))
+      .orderBy(desc(taskLogsTable.startedAt));
+    return taskLogs;
   }
 }

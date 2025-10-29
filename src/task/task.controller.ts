@@ -8,6 +8,7 @@ import {
   Param,
   UseGuards,
   Req,
+  HttpException,
 } from "@nestjs/common";
 import { AuthGuard } from "@/auth/auth.guard";
 import { User } from "@/auth/auth.decorators";
@@ -115,6 +116,12 @@ export class TaskController {
         request.url,
         request.method,
       );
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      throw new AlreadyLoggedError("Failed to edit task", {
+        cause: error as Error,
+      });
     }
   }
 
@@ -122,27 +129,65 @@ export class TaskController {
   async deleteTask(
     @Param("id") taskId: string,
     @User() user: { userId: string; email: string },
+    @Req() request: Request,
   ) {
-    await this.taskService.deleteTask(Number(user.userId), Number(taskId));
-    return {
-      success: true,
-      message: "Task deleted successfully",
-    };
+    try {
+      await this.taskService.deleteTask(Number(user.userId), Number(taskId));
+      return {
+        success: true,
+        message: "Task deleted successfully",
+      };
+    } catch (error) {
+      await this.logger.error(
+        `Failed to delete task ${taskId} for user ${user.userId}`,
+        error as Error,
+        "TaskService",
+        { taskId },
+        Number(user.userId),
+        request.url,
+        request.method,
+      );
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      throw new AlreadyLoggedError("Failed to delete task", {
+        cause: error as Error,
+      });
+    }
   }
 
-  @Get(":id/logs")
+  @Get("logs/:id")
   async getTaskLogs(
     @Param("id") taskId: string,
     @User() user: { userId: string; email: string },
+    @Req() request: Request,
   ) {
-    const taskLogs = await this.taskService.getTaskLogs(
-      Number(user.userId),
-      Number(taskId),
-    );
-    return {
-      success: true,
-      message: "Logs retrieved successfully",
-      data: taskLogs,
-    };
+    try {
+      const taskLogs = await this.taskService.getTaskLogs(
+        Number(user.userId),
+        Number(taskId),
+      );
+      return {
+        success: true,
+        message: "Logs retrieved successfully",
+        data: taskLogs,
+      };
+    } catch (error) {
+      await this.logger.error(
+        `Failed to get task logs for task ${taskId}`,
+        error as Error,
+        "TaskService",
+        { taskId },
+        Number(user.userId),
+        request.url,
+        request.method,
+      );
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      throw new AlreadyLoggedError("Failed to get logs for the task", {
+        cause: error as Error,
+      });
+    }
   }
 }

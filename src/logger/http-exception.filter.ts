@@ -33,9 +33,9 @@ export class AllExceptionsFilter implements ExceptionFilter {
       exception instanceof Error ? exception : new Error(String(exception));
 
     interface RequestWithUser extends Request {
-      user?: { sub: number };
+      user?: { userId: number };
     }
-    const userId = (request as RequestWithUser).user?.sub;
+    const userId = (request as RequestWithUser).user?.userId;
 
     if (!(error as any).alreadyLogged) {
       this.logger.logHttpError(error, request, userId).catch((logError) => {
