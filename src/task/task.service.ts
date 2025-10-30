@@ -2,7 +2,6 @@ import { DrizzleService } from "@/drizzle/drizzle.service";
 import {
   ForbiddenException,
   Injectable,
-  HttpException,
   InternalServerErrorException,
   NotFoundException,
 } from "@nestjs/common";
@@ -23,9 +22,10 @@ export class TaskService {
   ) {}
 
   private async hasPermission(userId: number, taskId: number): Promise<void> {
+    const db = this.drizzleService.getClient();
+
     try {
-      const task = await this.drizzleService
-        .getClient()
+      const task = await db
         .select({ userId: tasksTable.userId })
         .from(tasksTable)
         .where(eq(tasksTable.id, taskId));
@@ -58,16 +58,37 @@ export class TaskService {
     }
   }
 
+  private async existingTask(taskId: number) {
+    const db = this.drizzleService.getClient();
+
+    const task = await db
+      .select()
+      .from(tasksTable)
+      .where(eq(tasksTable.id, taskId));
+
+    if (!task[0]) {
+      throw new NotFoundException("Task not found");
+    }
+
+    return task[0];
+  }
+
   async createTask(task: CreateTaskDto, userId: number): Promise<Task> {
+    const db = this.drizzleService.getClient();
+
     const job = await this.zyphir_queue.add(
       `task_${userId}_${Date.now()}`,
       task,
+      {
+        repeat: { pattern: task.cron },
+        removeOnComplete: true,
+        removeOnFail: true,
+      },
     );
     if (!job.id) {
       throw new InternalServerErrorException();
     }
-    const newTask: Task[] = await this.drizzleService
-      .getClient()
+    const newTask: Task[] = await db
       .insert(tasksTable)
       .values({ ...task, userId: userId, jobId: job.id })
       .returning();
@@ -76,8 +97,9 @@ export class TaskService {
   }
 
   async getTasksByUserId(userId: number): Promise<Task[]> {
-    return await this.drizzleService
-      .getClient()
+    const db = this.drizzleService.getClient();
+
+    return await db
       .select()
       .from(tasksTable)
       .where(eq(tasksTable.userId, userId))
@@ -91,29 +113,65 @@ export class TaskService {
   ): Promise<Task> {
     await this.hasPermission(userId, taskId);
 
-    const updatedTask: Task[] = await this.drizzleService
-      .getClient()
+    const existingTask = await this.existingTask(taskId);
+
+    if (existingTask.jobId) {
+      const oldJob = await this.zyphir_queue.getJob(existingTask.jobId);
+      if (oldJob) {
+        await oldJob.remove();
+      }
+    }
+
+    const newJob = await this.zyphir_queue.add(
+      `task_${userId}_${Date.now()}`,
+      {
+        ...existingTask,
+        ...taskData,
+      },
+      {
+        repeat: { pattern: taskData.cron },
+        removeOnComplete: true,
+        removeOnFail: true,
+      },
+    );
+
+    if (!newJob.id) {
+      throw new InternalServerErrorException();
+    }
+    const db = this.drizzleService.getClient();
+
+    const updatedTask: Task[] = await db
       .update(tasksTable)
-      .set(taskData)
+      .set({ ...taskData, jobId: newJob.id })
       .where(eq(tasksTable.id, taskId))
       .returning();
+
     return updatedTask[0];
   }
 
   async deleteTask(userId: number, taskId: number) {
     await this.hasPermission(userId, taskId);
 
-    await this.drizzleService
-      .getClient()
-      .delete(tasksTable)
-      .where(eq(tasksTable.id, taskId));
+    const existingTask = await this.existingTask(taskId);
+
+    if (existingTask.jobId) {
+      const oldJob = await this.zyphir_queue.getJob(existingTask.jobId);
+      if (oldJob) {
+        await oldJob.remove();
+      }
+    }
+
+    const db = this.drizzleService.getClient();
+
+    await db.delete(tasksTable).where(eq(tasksTable.id, taskId));
   }
 
   async getTaskLogs(userId: number, taskId: number): Promise<TaskLog[]> {
     await this.hasPermission(userId, taskId);
 
-    const taskLogs: TaskLog[] = await this.drizzleService
-      .getClient()
+    const db = this.drizzleService.getClient();
+
+    const taskLogs: TaskLog[] = await db
       .select()
       .from(taskLogsTable)
       .where(eq(taskLogsTable.taskId, taskId))
