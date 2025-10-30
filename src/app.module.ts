@@ -5,7 +5,6 @@ import { AuthModule } from "./auth/auth.module";
 import { UsersModule } from "./users/users.module";
 import { BullModule } from "@nestjs/bullmq";
 import { QueueModule } from "./queue/queue.module";
-import { WorkerModule } from "./worker/worker.module";
 import { EnvModule } from "./env/env.module";
 import { ConfigModule } from "@nestjs/config";
 import envConfig from "./config/env.config";
@@ -22,7 +21,6 @@ import { LoggerModule } from "./logger/logger.module";
     QueueModule,
     TaskModule,
     UsersModule,
-    WorkerModule,
     BullModule.forRootAsync({
       imports: [EnvModule],
       inject: [EnvService],
