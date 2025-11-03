@@ -80,6 +80,11 @@ export class TaskService {
       `task_${userId}_${Date.now()}`,
       task,
       {
+        attempts: 5,
+        backoff: {
+          type: "exponential",
+          delay: 5000,
+        },
         repeat: { pattern: task.cron },
         removeOnComplete: true,
         removeOnFail: true,
@@ -129,6 +134,11 @@ export class TaskService {
         ...taskData,
       },
       {
+        attempts: 5,
+        backoff: {
+          type: "exponential",
+          delay: 5000,
+        },
         repeat: { pattern: taskData.cron },
         removeOnComplete: true,
         removeOnFail: true,
