@@ -7,13 +7,28 @@ import {
 import { JwtService } from "@nestjs/jwt";
 import type { AuthenticatedRequest, JwtPayload } from "./auth.types";
 import { EnvService } from "@/env/env.service";
+import { DrizzleService } from "@/drizzle/drizzle.service";
+import { usersTable } from "@/drizzle/drizzle.schema";
+import { eq } from "drizzle-orm";
 
 @Injectable()
 export class AuthGuard implements CanActivate {
   constructor(
     private jwtService: JwtService,
     private envService: EnvService,
+    private drizzleService: DrizzleService,
   ) {}
+
+  private async doesUserExist(userId: string) {
+    const db = this.drizzleService.getClient();
+    const user = await db
+      .select()
+      .from(usersTable)
+      .where(eq(usersTable.id, userId));
+    if (user.length != 1) {
+      throw new UnauthorizedException();
+    }
+  }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
@@ -31,6 +46,8 @@ export class AuthGuard implements CanActivate {
           secret: this.envService.JWT_SECRET,
         },
       );
+
+      await this.doesUserExist(tokenPayload.sub);
 
       request.user = {
         userId: tokenPayload.sub,

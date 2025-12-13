@@ -33,7 +33,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
       exception instanceof Error ? exception : new Error(String(exception));
 
     interface RequestWithUser extends Request {
-      user?: { userId: number };
+      user?: { userId: string };
     }
     const userId = (request as RequestWithUser).user?.userId;
 

@@ -1,16 +1,16 @@
 export type Task = {
-  id: number;
-  userId: number;
+  id: string;
+  userId: string;
   targetUrl: string;
   cron: string;
   payload: string | null;
   createdAt: Date;
-  updatedAt: Date | null;
+  updatedAt: Date;
 };
 
 export type TaskLog = {
   id: number;
-  taskId: number;
+  taskId: string;
   status: boolean;
   responseCode: string | null;
   responseBody: string | null;

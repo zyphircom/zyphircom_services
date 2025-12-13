@@ -10,7 +10,7 @@ export interface LogMetadata {
 }
 
 export interface LogEntry {
-  userId?: number;
+  userId?: string;
   level: LogLevel;
   context?: string;
   message: string;
@@ -23,6 +23,6 @@ export interface LogEntry {
 
 export interface LoggerOptions {
   context?: string;
-  userId?: number;
+  userId?: string;
   requestId?: string;
 }

@@ -6,12 +6,14 @@ import { JwtModule } from "@nestjs/jwt";
 import { EnvService } from "@/env/env.service";
 import { EnvModule } from "@/env/env.module";
 import { LoggerModule } from "@/logger/logger.module";
+import { DrizzleModule } from "@/drizzle/drizzle.module";
 
 @Module({
   imports: [
     EnvModule,
     UsersModule,
     LoggerModule,
+    DrizzleModule,
     JwtModule.registerAsync({
       global: true,
       imports: [EnvModule],

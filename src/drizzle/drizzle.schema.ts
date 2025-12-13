@@ -2,29 +2,37 @@ import { pgTable } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
 export const usersTable = pgTable("users", (d) => ({
-  id: d.integer().primaryKey().generatedAlwaysAsIdentity(),
+  id: d
+    .varchar({ length: 255 })
+    .notNull()
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
   email: d.varchar({ length: 255 }).notNull().unique(),
   password: d.varchar({ length: 255 }).notNull(),
 }));
 
 export const tasksTable = pgTable("tasks", (d) => ({
-  id: d.integer().primaryKey().generatedAlwaysAsIdentity(),
+  id: d
+    .varchar({ length: 255 })
+    .notNull()
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
   userId: d
-    .integer()
+    .varchar({ length: 255 })
     .notNull()
     .references(() => usersTable.id, { onDelete: "cascade" }),
   targetUrl: d.varchar({ length: 255 }).notNull(),
   cron: d.varchar({ length: 255 }).notNull(),
   payload: d.text(),
   createdAt: d.timestamp().notNull().defaultNow(),
-  updatedAt: d.timestamp(),
+  updatedAt: d.timestamp().notNull().defaultNow(),
   jobId: d.varchar().notNull(),
 }));
 
 export const taskLogsTable = pgTable("task_logs", (d) => ({
   id: d.integer().primaryKey().generatedAlwaysAsIdentity(),
   taskId: d
-    .integer()
+    .varchar({ length: 255 })
     .notNull()
     .references(() => tasksTable.id, { onDelete: "cascade" }),
   status: d.boolean().notNull(),
@@ -38,7 +46,9 @@ export const taskLogsTable = pgTable("task_logs", (d) => ({
 
 export const errorLogsTable = pgTable("error_logs", (d) => ({
   id: d.integer().primaryKey().generatedByDefaultAsIdentity(),
-  userId: d.integer().references(() => usersTable.id, { onDelete: "cascade" }),
+  userId: d
+    .varchar({ length: 255 })
+    .references(() => usersTable.id, { onDelete: "cascade" }),
   level: d.varchar({ length: 20 }).notNull().default("ERROR"),
   context: d.varchar({ length: 255 }),
   message: d.text().notNull(),

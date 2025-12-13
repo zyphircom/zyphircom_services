@@ -35,7 +35,7 @@ export class TaskController {
     try {
       const task = await this.taskService.createTask(
         CreateTaskDto,
-        Number(user.userId),
+        user.userId,
       );
       return {
         success: true,
@@ -48,7 +48,7 @@ export class TaskController {
         error as Error,
         "TaskService",
         { taskData: CreateTaskDto },
-        Number(user.userId),
+        user.userId,
         request.url,
         request.method,
       );
@@ -64,9 +64,7 @@ export class TaskController {
     @Req() request: Request,
   ) {
     try {
-      const tasks = await this.taskService.getTasksByUserId(
-        Number(user.userId),
-      );
+      const tasks = await this.taskService.getTasksByUserId(user.userId);
       return {
         success: true,
         message: "Tasks retrieved successfully",
@@ -78,7 +76,7 @@ export class TaskController {
         error as Error,
         "TaskService",
         undefined,
-        Number(user.userId),
+        user.userId,
         request.url,
         request.method,
       );
@@ -97,8 +95,8 @@ export class TaskController {
   ) {
     try {
       const updatedTask = await this.taskService.editTask(
-        Number(user.userId),
-        Number(taskId),
+        user.userId,
+        taskId,
         taskData,
       );
       return {
@@ -112,7 +110,7 @@ export class TaskController {
         error as Error,
         "TaskService",
         { taskId, taskData },
-        Number(user.userId),
+        user.userId,
         request.url,
         request.method,
       );
@@ -132,7 +130,7 @@ export class TaskController {
     @Req() request: Request,
   ) {
     try {
-      await this.taskService.deleteTask(Number(user.userId), Number(taskId));
+      await this.taskService.deleteTask(user.userId, taskId);
       return {
         success: true,
         message: "Task deleted successfully",
@@ -143,7 +141,7 @@ export class TaskController {
         error as Error,
         "TaskService",
         { taskId },
-        Number(user.userId),
+        user.userId,
         request.url,
         request.method,
       );
@@ -163,10 +161,7 @@ export class TaskController {
     @Req() request: Request,
   ) {
     try {
-      const taskLogs = await this.taskService.getTaskLogs(
-        Number(user.userId),
-        Number(taskId),
-      );
+      const taskLogs = await this.taskService.getTaskLogs(user.userId, taskId);
       return {
         success: true,
         message: "Logs retrieved successfully",
@@ -178,7 +173,7 @@ export class TaskController {
         error as Error,
         "TaskService",
         { taskId },
-        Number(user.userId),
+        user.userId,
         request.url,
         request.method,
       );

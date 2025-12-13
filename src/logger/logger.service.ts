@@ -89,7 +89,7 @@ export class LoggerService {
     error?: Error,
     context?: string,
     metadata?: LogMetadata,
-    userId?: number,
+    userId?: string,
     endpoint?: string,
     method?: string,
   ): Promise<void> {
@@ -112,7 +112,7 @@ export class LoggerService {
     message: string,
     context?: string,
     metadata?: LogMetadata,
-    userId?: number,
+    userId?: string,
   ): Promise<void> {
     const entry: LogEntry = {
       level: LogLevel.WARN,
@@ -142,7 +142,7 @@ export class LoggerService {
   async logHttpError(
     error: Error,
     request: Request,
-    userId?: number,
+    userId?: string,
   ): Promise<void> {
     const metadata: LogMetadata = {
       url: request.url,

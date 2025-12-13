@@ -18,7 +18,7 @@ export class UsersService {
     private logger: LoggerService,
   ) {}
 
-  private async findUser(email?: string, id?: number): Promise<User> {
+  private async findUser(email?: string, id?: string): Promise<User> {
     if (!email && !id) {
       throw new BadRequestException("Email or ID must be provided");
     }
@@ -52,7 +52,7 @@ export class UsersService {
     return this.findUser(email);
   }
 
-  async findUserById(id: number) {
+  async findUserById(id: string) {
     return this.findUser("", id);
   }
 

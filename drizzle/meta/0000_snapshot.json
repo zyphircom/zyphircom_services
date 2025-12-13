@@ -1,5 +1,5 @@
 {
-  "id": "61c7e2e0-a83d-42bd-a321-fd9e414d2ceb",
+  "id": "c62dded4-c1e9-4c0d-98a6-3b0db803483e",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -27,7 +27,7 @@
         },
         "userId": {
           "name": "userId",
-          "type": "integer",
+          "type": "varchar(255)",
           "primaryKey": false,
           "notNull": false
         },
@@ -133,7 +133,7 @@
         },
         "taskId": {
           "name": "taskId",
-          "type": "integer",
+          "type": "varchar(255)",
           "primaryKey": false,
           "notNull": true
         },
@@ -208,24 +208,13 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "integer",
+          "type": "varchar(255)",
           "primaryKey": true,
-          "notNull": true,
-          "identity": {
-            "type": "always",
-            "name": "tasks_id_seq",
-            "schema": "public",
-            "increment": "1",
-            "startWith": "1",
-            "minValue": "1",
-            "maxValue": "2147483647",
-            "cache": "1",
-            "cycle": false
-          }
+          "notNull": true
         },
         "userId": {
           "name": "userId",
-          "type": "integer",
+          "type": "varchar(255)",
           "primaryKey": false,
           "notNull": true
         },
@@ -258,7 +247,8 @@
           "name": "updatedAt",
           "type": "timestamp",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true,
+          "default": "now()"
         },
         "jobId": {
           "name": "jobId",
@@ -295,20 +285,9 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "integer",
+          "type": "varchar(255)",
           "primaryKey": true,
-          "notNull": true,
-          "identity": {
-            "type": "always",
-            "name": "users_id_seq",
-            "schema": "public",
-            "increment": "1",
-            "startWith": "1",
-            "minValue": "1",
-            "maxValue": "2147483647",
-            "cache": "1",
-            "cycle": false
-          }
+          "notNull": true
         },
         "email": {
           "name": "email",
