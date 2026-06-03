@@ -1,98 +1,228 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Zyphircom API
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+A NestJS-based REST API service for scheduling and managing HTTP requests using cron expressions. This service allows users to create, manage, and monitor recurring HTTP tasks with built-in logging and authentication.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Features
 
-## Description
+- 🔐 **JWT Authentication** - Secure user registration and login
+- ⏰ **Cron-based Scheduling** - Schedule HTTP requests using cron expressions
+- 📊 **Task Management** - Full CRUD operations for scheduled tasks
+- 📝 **Execution Logging** - Track task execution history and responses
+- 🔄 **Automatic Retries** - Exponential backoff retry mechanism for failed tasks
+- 🐳 **Docker Support** - Easy local development setup with Docker Compose
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## Tech Stack
 
-## Project setup
+- **Framework**: NestJS (TypeScript)
+- **Database**: PostgreSQL with Drizzle ORM
+- **Queue**: BullMQ with Redis
+- **Authentication**: JWT
+- **Validation**: class-validator, Zod
 
-```bash
-$ pnpm install
-```
+## Prerequisites
 
-## Compile and run the project
+- Node.js (v18 or higher)
+- pnpm (package manager)
+- Docker & Docker Compose (for local development)
+- PostgreSQL (if not using Docker)
+- Redis (if not using Docker)
+
+## Getting Started
+
+### 1. Clone and Install
 
 ```bash
-# development
-$ pnpm run start
+# Clone the repository
+git clone <repository-url>
+cd zyphircom_api
 
-# watch mode
-$ pnpm run start:dev
-
-# production mode
-$ pnpm run start:prod
+# Install dependencies
+pnpm install
 ```
 
-## Run tests
+### 2. Environment Setup
 
 ```bash
-# unit tests
-$ pnpm run test
+# Copy the example environment file
+cp .env.example .env
 
-# e2e tests
-$ pnpm run test:e2e
-
-# test coverage
-$ pnpm run test:cov
+# Edit .env with your configuration
 ```
 
-## Deployment
+**Key Environment Variables:**
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+```env
+APP_NAME="zyphircom"
+DATABASE_URL="postgresql://pguser:pgpassword@localhost:5434/appname"
+JWT_SECRET="your-secret-key-here"
+REDIS_HOST="localhost"
+REDIS_PORT="6379"
+LOG_LEVEL="INFO"
+```
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+### 3. Start Services with Docker
 
 ```bash
-$ pnpm install -g @nestjs/mau
-$ mau deploy
+# Start PostgreSQL and Redis
+docker-compose up -d
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+### 4. Database Setup
 
-## Resources
+```bash
+# Generate migration files
+pnpm db:generate
 
-Check out a few resources that may come in handy when working with NestJS:
+# Run migrations
+pnpm db:migrate
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+# Or push schema directly (development)
+pnpm db:push
 
-## Support
+# Open Drizzle Studio (optional - database GUI)
+pnpm db:studio
+```
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+### 5. Run the Application
 
-## Stay in touch
+```bash
+# Development mode with hot-reload
+pnpm start:dev
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+# Production build
+pnpm build
+pnpm start:prod
+```
+
+The API will be available at `http://localhost:3333/api`
+
+## API Endpoints
+
+### Authentication
+
+| Method | Endpoint           | Description                 |
+| ------ | ------------------ | --------------------------- |
+| POST   | `/api/auth/signup` | Register a new user         |
+| POST   | `/api/auth/login`  | Login and receive JWT token |
+
+**Example Signup Request:**
+
+```json
+{
+  "email": "user@example.com",
+  "password": "yourpassword"
+}
+```
+
+### Tasks (Requires Authentication)
+
+| Method | Endpoint             | Description                    |
+| ------ | -------------------- | ------------------------------ |
+| POST   | `/api/task`          | Create a new scheduled task    |
+| GET    | `/api/task`          | Get all tasks for current user |
+| PATCH  | `/api/task/:id`      | Update a task                  |
+| DELETE | `/api/task/:id`      | Delete a task                  |
+| GET    | `/api/task/:id/logs` | Get execution logs for a task  |
+
+**Example Create Task Request:**
+
+```json
+{
+  "targetUrl": "https://api.example.com/webhook",
+  "cron": "0 */2 * * *",
+  "payload": "{\"message\": \"Hello World\"}"
+}
+```
+
+**Authentication Header:**
+
+```
+Authorization: Bearer <your-jwt-token>
+```
+
+## Project Structure
+
+```
+src/
+├── auth/              # Authentication module (JWT, guards)
+├── config/            # Configuration and validation
+├── drizzle/           # Database schema and ORM setup
+├── logger/            # Custom logging service
+├── queue/             # BullMQ queue configuration
+├── task/              # Task management (controllers, services)
+├── users/             # User management
+├── app.module.ts      # Root application module
+├── main.ts            # Application entry point
+└── constants.ts       # Application constants
+```
+
+## Development Commands
+
+```bash
+# Development
+pnpm start:dev         # Start with hot-reload
+pnpm start:debug       # Start with debugging
+
+# Database
+pnpm db:generate       # Generate migrations from schema
+pnpm db:migrate        # Run migrations
+pnpm db:push           # Push schema changes (dev only)
+pnpm db:studio         # Open Drizzle Studio
+
+# Testing
+pnpm test              # Run unit tests
+pnpm test:e2e          # Run e2e tests
+pnpm test:cov          # Generate coverage report
+
+# Code Quality
+pnpm lint              # Lint and fix code
+pnpm format            # Format code with Prettier
+```
+
+## How It Works
+
+1. **User Registration**: Create an account via `/auth/signup`
+2. **Authentication**: Login via `/auth/login` to receive a JWT token
+3. **Create Task**: Schedule an HTTP request with a cron expression
+4. **Task Execution**: BullMQ processes tasks according to their schedule
+5. **Logging**: Each execution is logged with status, response, and metadata
+6. **Task Management**: Update or delete tasks as needed
+
+## Key Concepts
+
+### Cron Expressions
+
+Tasks use standard cron syntax for scheduling:
+
+- `0 * * * *` - Every hour
+- `*/5 * * * *` - Every 5 minutes
+- `0 9 * * 1-5` - Every weekday at 9 AM
+
+### Task Retry Logic
+
+- Failed tasks retry up to 5 times
+- Exponential backoff with 5-second initial delay
+- Completed/failed jobs are automatically cleaned up
+
+### Security
+
+- All task endpoints require JWT authentication
+- Users can only access their own tasks
+- Passwords are hashed with bcrypt
+
+## Environment Notes
+
+- Update `src/config/validation.ts` when adding new environment variables
+- The validation schema ensures all required variables are present at startup
+- Invalid configuration will prevent the application from starting
+
+## Contributing
+
+1. Create a feature branch
+2. Make your changes
+3. Run tests and linting
+4. Submit a pull request
 
 ## License
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+UNLICENSED - Private project

@@ -268,5 +268,4 @@ export class TaskService {
       .orderBy(desc(taskLogsTable.startedAt));
     return taskLogs;
   }
-  string;
 }
