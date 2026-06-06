@@ -7,7 +7,7 @@ import { EnvService } from "@/env/env.service";
 @Injectable()
 export class DrizzleService implements OnModuleInit {
   constructor(private envService: EnvService) {}
-  private db: ReturnType<typeof drizzle<typeof schema>>;
+  private db!: ReturnType<typeof drizzle<typeof schema>>;
 
   onModuleInit() {
     const globalForDb = globalThis as unknown as {
@@ -15,7 +15,8 @@ export class DrizzleService implements OnModuleInit {
     };
 
     const conn = globalForDb.conn ?? postgres(this.envService.DATABASE_URL);
-    if (this.envService.NODE_ENV !== "development") globalForDb.conn = conn;
+
+    if (this.envService.NODE_ENV === "development") globalForDb.conn = conn;
 
     this.db = drizzle(conn, { schema });
   }

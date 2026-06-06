@@ -3,10 +3,10 @@ import { IsString, IsOptional, IsUrl } from "class-validator";
 
 export class CreateTaskDto {
   @IsUrl()
-  targetUrl: string;
+  targetUrl!: string;
 
   @IsString()
-  cron: string;
+  cron!: string;
 
   @IsString()
   @IsOptional()

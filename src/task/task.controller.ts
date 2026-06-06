@@ -11,12 +11,12 @@ import {
   HttpException,
 } from "@nestjs/common";
 import { AuthGuard } from "@/auth/auth.guard";
-import { User } from "@/auth/auth.decorators";
+import { UserDecorator } from "@/auth/auth.decorators";
 import { TaskService } from "./task.service";
 import { CreateTaskDto, EditTaskDto } from "./task.dto";
 import { LoggerService } from "@/logger/logger.service";
 import { AlreadyLoggedError } from "@/logger/already-logged.error";
-import { Request } from "express";
+import type { Request } from "express";
 
 @UseGuards(AuthGuard)
 @Controller("task")
@@ -29,7 +29,7 @@ export class TaskController {
   @Post()
   async createTask(
     @Body() CreateTaskDto: CreateTaskDto,
-    @User() user: { userId: string; email: string },
+    @UserDecorator() user: { userId: string; email: string },
     @Req() request: Request,
   ) {
     try {
@@ -60,7 +60,7 @@ export class TaskController {
 
   @Get()
   async getTasksByUserId(
-    @User() user: { userId: string; email: string },
+    @UserDecorator() user: { userId: string; email: string },
     @Req() request: Request,
   ) {
     try {
@@ -90,7 +90,7 @@ export class TaskController {
   async editTask(
     @Body() taskData: EditTaskDto,
     @Param("id") taskId: string,
-    @User() user: { userId: string; email: string },
+    @UserDecorator() user: { userId: string; email: string },
     @Req() request: Request,
   ) {
     try {
@@ -126,7 +126,7 @@ export class TaskController {
   @Delete(":id")
   async deleteTask(
     @Param("id") taskId: string,
-    @User() user: { userId: string; email: string },
+    @UserDecorator() user: { userId: string; email: string },
     @Req() request: Request,
   ) {
     try {
@@ -157,7 +157,7 @@ export class TaskController {
   @Get("logs/:id")
   async getTaskLogs(
     @Param("id") taskId: string,
-    @User() user: { userId: string; email: string },
+    @UserDecorator() user: { userId: string; email: string },
     @Req() request: Request,
   ) {
     try {
