@@ -1,5 +1,5 @@
 {
-  "id": "c62dded4-c1e9-4c0d-98a6-3b0db803483e",
+  "id": "2fc7b087-a441-47ce-8eae-4f1f4eeb51b3",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -27,7 +27,7 @@
         },
         "userId": {
           "name": "userId",
-          "type": "varchar(255)",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": false
         },
@@ -133,7 +133,7 @@
         },
         "taskId": {
           "name": "taskId",
-          "type": "varchar(255)",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
@@ -208,13 +208,14 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "varchar(255)",
+          "type": "uuid",
           "primaryKey": true,
-          "notNull": true
+          "notNull": true,
+          "default": "gen_random_uuid()"
         },
         "userId": {
           "name": "userId",
-          "type": "varchar(255)",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
@@ -254,7 +255,7 @@
           "name": "jobId",
           "type": "varchar",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         }
       },
       "indexes": {},
@@ -285,9 +286,10 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "varchar(255)",
+          "type": "uuid",
           "primaryKey": true,
-          "notNull": true
+          "notNull": true,
+          "default": "gen_random_uuid()"
         },
         "email": {
           "name": "email",

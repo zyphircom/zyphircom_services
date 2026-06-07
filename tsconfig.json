@@ -21,7 +21,9 @@
     "strictBindCallApply": false,
     "noFallthroughCasesInSwitch": false,
     "paths": {
-      "@/*": ["./src/*"]
+      "@lib/*": ["./lib/*"],
+      "@api/*": ["./apps/api/src/*"],
+      "@worker/*": ["./apps/worker/src/*"]
     }
   }
 }
