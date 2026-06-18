@@ -12,12 +12,30 @@ export const tasksTable = pgTable("tasks", (d) => ({
   userId: uuid()
     .notNull()
     .references(() => usersTable.id, { onDelete: "cascade" }),
-  targetUrl: d.varchar({ length: 255 }).notNull(),
+  name: d.varchar({ length: 255 }).notNull(),
+  description: d.text(),
+  targetUrl: d.varchar({ length: 2048 }).notNull(),
+  method: d.varchar({ length: 10 }).notNull().default("POST"),
+  headers: d.jsonb(),
   cron: d.varchar({ length: 255 }).notNull(),
   payload: d.text(),
+  isActive: d.boolean().notNull().default(true),
   createdAt: d.timestamp().notNull().defaultNow(),
   updatedAt: d.timestamp().notNull().defaultNow(),
-  jobId: d.varchar(),
+}));
+
+export const jobsTable = pgTable("jobs", (d) => ({
+  id: uuid().notNull().defaultRandom().primaryKey(),
+  taskId: uuid()
+    .notNull()
+    .references(() => tasksTable.id, { onDelete: "cascade" }),
+  schedulerId: d.varchar({ length: 500 }).notNull().unique(),
+  status: d.varchar({ length: 20 }).notNull().default("active"),
+  attempts: d.integer().notNull().default(5),
+  backoffDelay: d.integer().notNull().default(5000),
+  nextRunAt: d.timestamp(),
+  createdAt: d.timestamp().notNull().defaultNow(),
+  updatedAt: d.timestamp().notNull().defaultNow(),
 }));
 
 export const taskLogsTable = pgTable("task_logs", (d) => ({
@@ -25,11 +43,14 @@ export const taskLogsTable = pgTable("task_logs", (d) => ({
   taskId: uuid()
     .notNull()
     .references(() => tasksTable.id, { onDelete: "cascade" }),
+  jobId: uuid().references(() => jobsTable.id, { onDelete: "set null" }),
+  bullInstanceId: d.varchar({ length: 255 }),
   status: d.boolean().notNull(),
   responseCode: d.varchar({ length: 255 }),
   responseBody: d.text(),
   startedAt: d.timestamp(),
   completedAt: d.timestamp(),
+  durationMs: d.integer(),
   attempt: d.integer().notNull(),
   retry: d.boolean().notNull(),
 }));
@@ -60,6 +81,15 @@ export const tasksRelations = relations(tasksTable, ({ one, many }) => ({
     fields: [tasksTable.userId],
     references: [usersTable.id],
   }),
+  jobs: many(jobsTable),
+  taskLogs: many(taskLogsTable),
+}));
+
+export const jobsRelations = relations(jobsTable, ({ one, many }) => ({
+  task: one(tasksTable, {
+    fields: [jobsTable.taskId],
+    references: [tasksTable.id],
+  }),
   taskLogs: many(taskLogsTable),
 }));
 
@@ -67,6 +97,10 @@ export const tasksLogsRelations = relations(taskLogsTable, ({ one }) => ({
   task: one(tasksTable, {
     fields: [taskLogsTable.taskId],
     references: [tasksTable.id],
+  }),
+  job: one(jobsTable, {
+    fields: [taskLogsTable.jobId],
+    references: [jobsTable.id],
   }),
 }));
 

@@ -12,14 +12,30 @@ CREATE TABLE "error_logs" (
 	"createdAt" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
+CREATE TABLE "jobs" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"taskId" uuid NOT NULL,
+	"schedulerId" varchar(500) NOT NULL,
+	"status" varchar(20) DEFAULT 'active' NOT NULL,
+	"attempts" integer DEFAULT 5 NOT NULL,
+	"backoffDelay" integer DEFAULT 5000 NOT NULL,
+	"nextRunAt" timestamp,
+	"createdAt" timestamp DEFAULT now() NOT NULL,
+	"updatedAt" timestamp DEFAULT now() NOT NULL,
+	CONSTRAINT "jobs_schedulerId_unique" UNIQUE("schedulerId")
+);
+--> statement-breakpoint
 CREATE TABLE "task_logs" (
 	"id" integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY (sequence name "task_logs_id_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 2147483647 START WITH 1 CACHE 1),
 	"taskId" uuid NOT NULL,
+	"jobId" uuid,
+	"bullInstanceId" varchar(255),
 	"status" boolean NOT NULL,
 	"responseCode" varchar(255),
 	"responseBody" text,
 	"startedAt" timestamp,
 	"completedAt" timestamp,
+	"durationMs" integer,
 	"attempt" integer NOT NULL,
 	"retry" boolean NOT NULL
 );
@@ -27,12 +43,16 @@ CREATE TABLE "task_logs" (
 CREATE TABLE "tasks" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"userId" uuid NOT NULL,
-	"targetUrl" varchar(255) NOT NULL,
+	"name" varchar(255) NOT NULL,
+	"description" text,
+	"targetUrl" varchar(2048) NOT NULL,
+	"method" varchar(10) DEFAULT 'POST' NOT NULL,
+	"headers" jsonb,
 	"cron" varchar(255) NOT NULL,
 	"payload" text,
+	"isActive" boolean DEFAULT true NOT NULL,
 	"createdAt" timestamp DEFAULT now() NOT NULL,
-	"updatedAt" timestamp DEFAULT now() NOT NULL,
-	"jobId" varchar
+	"updatedAt" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "users" (
@@ -43,5 +63,7 @@ CREATE TABLE "users" (
 );
 --> statement-breakpoint
 ALTER TABLE "error_logs" ADD CONSTRAINT "error_logs_userId_users_id_fk" FOREIGN KEY ("userId") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "jobs" ADD CONSTRAINT "jobs_taskId_tasks_id_fk" FOREIGN KEY ("taskId") REFERENCES "public"."tasks"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "task_logs" ADD CONSTRAINT "task_logs_taskId_tasks_id_fk" FOREIGN KEY ("taskId") REFERENCES "public"."tasks"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "task_logs" ADD CONSTRAINT "task_logs_jobId_jobs_id_fk" FOREIGN KEY ("jobId") REFERENCES "public"."jobs"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "tasks" ADD CONSTRAINT "tasks_userId_users_id_fk" FOREIGN KEY ("userId") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
