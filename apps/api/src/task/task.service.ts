@@ -6,7 +6,11 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import { CreateTaskDto, EditTaskDto } from "@api/task/task.dto";
-import { taskLogsTable, tasksTable } from "@lib/drizzle/drizzle.schema";
+import {
+  jobsTable,
+  taskLogsTable,
+  tasksTable,
+} from "@lib/drizzle/drizzle.schema";
 import { desc, eq } from "drizzle-orm";
 import { Task, TaskLog } from "@api/task/task.types";
 import { InjectQueue } from "@nestjs/bullmq";
@@ -31,26 +35,25 @@ export class TaskService {
    * @param userId - The ID of the user attempting to access the task
    * @param taskId - The ID of the task to check permissions for
    *
-   * @throws {NotFoundException} When the task with the given taskId does not exist
-   * @throws {ForbiddenException} When the user does not own the task
+   * @throws {ForbiddenException} When the user does not own the task or the task with the given id does not exist
    * @throws {Error} For any unexpected database or system errors (logged automatically)
    *
    * @returns A Promise that resolves to void if permission check passes
    *
    * @remarks
    * - This is a private method intended for internal permission validation
-   * - Errors are logged (except NotFoundException and ForbiddenException) before being re-thrown
+   * - Errors are logged (except ForbiddenException) before being re-thrown
    *
    * @example
    * ```typescript
    * // Used internally before performing task operations
-   * await this.hasPermission(currentUserId, taskIdToUpdate);
+   * await this.checkPermission(currentUserId, taskIdToUpdate);
    * // If this succeeds, proceed with the operation
    * ```
    *
    * @private
    */
-  private async hasPermission(userId: string, taskId: string): Promise<void> {
+  private async checkPermission(userId: string, taskId: string): Promise<void> {
     const db = this.drizzleService.getClient();
 
     try {
@@ -60,7 +63,9 @@ export class TaskService {
         .where(eq(tasksTable.id, taskId));
 
       if (!task || task.length === 0) {
-        throw new NotFoundException("Task not found.");
+        throw new ForbiddenException(
+          "You do not have permission to perform this action.",
+        );
       }
 
       if (task[0].userId !== userId) {
@@ -69,12 +74,7 @@ export class TaskService {
         );
       }
     } catch (error) {
-      if (
-        !(
-          error instanceof NotFoundException ||
-          error instanceof ForbiddenException
-        )
-      ) {
+      if (!(error instanceof ForbiddenException)) {
         await this.logger.error(
           "Permission check failed",
           error as Error,
@@ -114,16 +114,11 @@ export class TaskService {
    *
    * @private
    */
-  private async existingTask(taskId: string) {
+  private async retrieveTask(taskId: string) {
     const db = this.drizzleService.getClient();
 
     const task = await db
-      .select({
-        targetUrl: tasksTable.targetUrl,
-        cron: tasksTable.cron,
-        payload: tasksTable.payload,
-        jobId: tasksTable.jobId,
-      })
+      .select()
       .from(tasksTable)
       .where(eq(tasksTable.id, taskId));
 
@@ -131,7 +126,7 @@ export class TaskService {
       throw new NotFoundException("Task not found");
     }
 
-    return task[0];
+    return task[0] as Task;
   }
 
   async createTask(
@@ -139,48 +134,64 @@ export class TaskService {
     userId: string,
   ): Promise<Task> {
     const db = this.drizzleService.getClient();
-    const taskName = `task_${userId}_${Date.now()}`;
 
-    const newTask: Task[] = await db
+    const newTask = await db
       .insert(tasksTable)
       .values({ ...createTaskDto, userId: userId })
       .returning();
 
     const taskId = newTask[0].id;
 
-    const job = await this.zyphir_queue.add(
-      taskName,
-      { taskId, ...createTaskDto },
-      {
-        attempts: 5,
-        backoff: {
-          type: "exponential",
-          delay: 5000,
+    try {
+      const job = await this.zyphir_queue.add(
+        createTaskDto.name,
+        {
+          taskId: taskId,
+          targetUrl: createTaskDto.targetUrl,
+          method: createTaskDto.method,
+          headers: createTaskDto.headers,
+          payload: createTaskDto.payload,
+          cron: createTaskDto.cron,
         },
-        repeat: { pattern: createTaskDto.cron },
-        removeOnComplete: true,
-        removeOnFail: true,
-      },
-    );
-    if (!job.id) {
-      throw new InternalServerErrorException();
-    }
-    await db
-      .update(tasksTable)
-      .set({ jobId: job.id })
-      .where(eq(tasksTable.id, newTask[0].id));
+        {
+          attempts: 5,
+          backoff: {
+            type: "exponential",
+            delay: 5000,
+          },
+          repeat: { pattern: createTaskDto.cron },
+          removeOnComplete: true,
+          removeOnFail: true,
+        },
+      );
 
-    return newTask[0];
+      if (!job.id || !job.repeatJobKey) {
+        throw new InternalServerErrorException(
+          "Failed to create job scheduler",
+        );
+      }
+
+      await db.insert(jobsTable).values({
+        taskId: taskId,
+        schedulerId: job.repeatJobKey,
+        status: "active",
+      });
+
+      return newTask[0] as Task;
+    } catch (error) {
+      await db.delete(tasksTable).where(eq(tasksTable.id, taskId));
+      throw error;
+    }
   }
 
   async getTasksByUserId(userId: string): Promise<Task[]> {
     const db = this.drizzleService.getClient();
 
-    return await db
+    return (await db
       .select()
       .from(tasksTable)
       .where(eq(tasksTable.userId, userId))
-      .orderBy(desc(tasksTable.createdAt));
+      .orderBy(desc(tasksTable.createdAt))) as Task[];
   }
 
   async editTask(
@@ -188,31 +199,41 @@ export class TaskService {
     taskId: string,
     editTaskDto: EditTaskDto,
   ): Promise<Task> {
-    await this.hasPermission(userId, taskId);
+    await this.checkPermission(userId, taskId);
 
-    const existingTask = await this.existingTask(taskId);
+    const existingTask = await this.retrieveTask(taskId);
     const db = this.drizzleService.getClient();
 
-    if (existingTask.jobId) {
-      const oldJob = await this.zyphir_queue.getJob(existingTask.jobId);
-      if (oldJob) {
-        if (oldJob.repeatJobKey) {
-          await this.zyphir_queue.removeJobScheduler(oldJob.repeatJobKey);
-        }
-        await oldJob.remove().catch(() => null);
+    const jobRecords = await db
+      .select()
+      .from(jobsTable)
+      .where(eq(jobsTable.taskId, taskId));
+
+    const jobRecord = jobRecords[0];
+
+    if (jobRecord?.schedulerId) {
+      try {
+        await this.zyphir_queue.removeJobScheduler(jobRecord.schedulerId);
+      } catch (error) {
+        throw new InternalServerErrorException("Failed to remove existing job");
       }
     }
 
-    const { jobId, ...taskWithoutJobId } = existingTask;
-
     const taskWithUpdates = {
-      ...taskWithoutJobId,
+      ...existingTask,
       ...editTaskDto,
     };
 
     const newJob = await this.zyphir_queue.add(
-      `task_${userId}_${Date.now()}`,
-      { taskId, ...taskWithUpdates },
+      taskWithUpdates.name,
+      {
+        taskId: taskId,
+        targetUrl: taskWithUpdates.targetUrl,
+        method: taskWithUpdates.method,
+        headers: taskWithUpdates.headers,
+        payload: taskWithUpdates.payload,
+        cron: taskWithUpdates.cron,
+      },
       {
         attempts: 5,
         backoff: { type: "exponential", delay: 5000 },
@@ -222,25 +243,30 @@ export class TaskService {
       },
     );
 
-    if (!newJob?.id) {
+    if (!newJob?.id || !newJob.repeatJobKey) {
       throw new InternalServerErrorException("Failed to schedule job");
     }
 
     try {
-      const updatedTask: Task[] = await db
+      const updatedTask = await db
         .update(tasksTable)
-        .set({ ...taskWithUpdates, jobId: newJob.id, updatedAt: new Date() })
+        .set({ ...editTaskDto, updatedAt: new Date() })
         .where(eq(tasksTable.id, taskId))
         .returning();
 
-      return updatedTask[0];
-    } catch (error) {
-      console.error("DB Update failed, rolling back queue job:", newJob.id);
+      await db
+        .update(jobsTable)
+        .set({
+          schedulerId: newJob.repeatJobKey,
+          status: "active",
+          updatedAt: new Date(),
+        })
+        .where(eq(jobsTable.taskId, taskId));
 
+      return updatedTask[0] as Task;
+    } catch (error) {
       if (newJob.repeatJobKey) {
         await this.zyphir_queue.removeJobScheduler(newJob.repeatJobKey);
-      } else {
-        await newJob.remove();
       }
 
       throw new InternalServerErrorException("Failed to update task");
@@ -248,32 +274,38 @@ export class TaskService {
   }
 
   async deleteTask(userId: string, taskId: string) {
-    await this.hasPermission(userId, taskId);
-
-    const existingTask = await this.existingTask(taskId);
-
-    if (existingTask.jobId) {
-      const oldJob = await this.zyphir_queue.getJob(existingTask.jobId);
-      if (oldJob && oldJob.repeatJobKey) {
-        await this.zyphir_queue.removeJobScheduler(oldJob.repeatJobKey);
-      }
-    }
+    await this.checkPermission(userId, taskId);
 
     const db = this.drizzleService.getClient();
 
-    await db.delete(tasksTable).where(eq(tasksTable.id, taskId));
+    const jobRecords = await db
+      .select()
+      .from(jobsTable)
+      .where(eq(jobsTable.taskId, taskId));
+
+    const jobRecord = jobRecords[0];
+
+    if (jobRecord?.schedulerId) {
+      try {
+        await this.zyphir_queue.removeJobScheduler(jobRecord.schedulerId);
+        await db.delete(tasksTable).where(eq(tasksTable.id, taskId));
+      } catch (error) {
+        throw new InternalServerErrorException("Failed to remove existing job");
+      }
+    }
   }
 
   async getTaskLogs(userId: string, taskId: string): Promise<TaskLog[]> {
-    await this.hasPermission(userId, taskId);
+    await this.checkPermission(userId, taskId);
 
     const db = this.drizzleService.getClient();
 
-    const taskLogs: TaskLog[] = await db
+    const taskLogs = await db
       .select()
       .from(taskLogsTable)
       .where(eq(taskLogsTable.taskId, taskId))
       .orderBy(desc(taskLogsTable.startedAt));
-    return taskLogs;
+
+    return taskLogs as TaskLog[];
   }
 }

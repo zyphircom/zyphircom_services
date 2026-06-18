@@ -16,7 +16,13 @@ export class WorkerService implements OnModuleInit {
   ) {}
 
   private async processJob(job: Job) {
-    const { targetUrl, payload, taskId } = job.data;
+    const {
+      taskId,
+      targetUrl,
+      method = "POST",
+      headers = {},
+      payload,
+    } = job.data;
     const db = this.drizzleService.getClient();
     const startedAt = new Date();
 
@@ -24,26 +30,46 @@ export class WorkerService implements OnModuleInit {
       typeof data === "string" ? data : JSON.stringify(data ?? null);
 
     try {
-      const response = await axios.post(targetUrl, payload, { timeout: 10000 });
+      const config: any = {
+        method: method.toUpperCase(),
+        url: targetUrl,
+        headers: headers || {},
+        timeout: 10000,
+      };
+
+      if (["POST", "PUT", "PATCH"].includes(method.toUpperCase())) {
+        config.data = payload;
+      }
+
+      const response = await axios(config);
+      const completedAt = new Date();
+      const durationMs = completedAt.getTime() - startedAt.getTime();
+
       console.log(
-        `Task Id ${taskId} executed successfully with status ${response.status}`,
+        `Task Id ${taskId} executed successfully with ${method} ${response.status}`,
       );
 
       await db.insert(taskLogsTable).values({
         taskId: taskId,
+        bullInstanceId: job.id,
         status: true,
         responseCode: String(response.status),
         responseBody: normalize(response.data).slice(0, 5000),
         startedAt: startedAt,
-        completedAt: new Date(),
+        completedAt: completedAt,
+        durationMs: durationMs,
         attempt: job.attemptsMade + 1,
         retry: job.attemptsMade > 0,
       });
     } catch (error: any) {
+      const completedAt = new Date();
+      const durationMs = completedAt.getTime() - startedAt.getTime();
+
       console.log(`Task ID ${taskId} failed ${error.message}`);
 
       await db.insert(taskLogsTable).values({
         taskId: taskId,
+        bullInstanceId: job.id,
         status: false,
         responseCode: String(error?.response?.status || 500),
         responseBody: normalize(error?.response?.data ?? error.message).slice(
@@ -51,7 +77,8 @@ export class WorkerService implements OnModuleInit {
           5000,
         ),
         startedAt: startedAt,
-        completedAt: new Date(),
+        completedAt: completedAt,
+        durationMs: durationMs,
         attempt: job.attemptsMade + 1,
         retry: job.attemptsMade > 0,
       });
