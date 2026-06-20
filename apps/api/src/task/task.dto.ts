@@ -11,6 +11,7 @@ import {
   ValidatorConstraintInterface,
   ValidationArguments,
 } from "class-validator";
+import parser from "cron-parser";
 
 @ValidatorConstraint({ name: "PayloadAllowed", async: false })
 class PayloadAllowedValidator implements ValidatorConstraintInterface {
@@ -28,6 +29,26 @@ class PayloadAllowedValidator implements ValidatorConstraintInterface {
 
   defaultMessage() {
     return "Payload is only allowed for POST, PUT, or PATCH methods";
+  }
+}
+
+@ValidatorConstraint({ name: "CronValidator", async: false })
+class CronValidator implements ValidatorConstraintInterface {
+  validate(cron: string, args: ValidationArguments): boolean {
+    if (typeof cron !== "string") {
+      return false;
+    }
+
+    try {
+      parser.parse(cron);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  defaultMessage(args: ValidationArguments): string {
+    return "Must be a valid cron expression.";
   }
 }
 
@@ -51,6 +72,7 @@ export class CreateTaskDto {
   headers?: Record<string, string>;
 
   @IsString()
+  @Validate(CronValidator)
   cron!: string;
 
   @IsString()
